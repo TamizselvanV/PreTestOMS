@@ -11,6 +11,6 @@ public class Availability {
 	private String storeNo;
 	private String productId;
 	private double availQty;
-	private LocalDate availDate;
+	public LocalDate availDate;
 
 }

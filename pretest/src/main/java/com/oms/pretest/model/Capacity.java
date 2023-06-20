@@ -12,7 +12,7 @@ public class Capacity {
 	private String storeNo;
 	private String productId;	
 	private Double noOfOrdersAccepted;
-	private LocalDate date;
+	public LocalDate date;
 	
 
 }

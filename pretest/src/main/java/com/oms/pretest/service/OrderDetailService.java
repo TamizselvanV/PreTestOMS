@@ -1,37 +1,48 @@
 package com.oms.pretest.service;
 
-import java.util.HashMap;
-import java.util.Iterator;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
+import java.util.stream.Collectors;
+
+import org.json.JSONObject;
+import org.springframework.stereotype.Service;
 
 import com.oms.pretest.data.OrderDetailsData;
 import com.oms.pretest.model.OrderDetail;
-import com.oms.pretest.model.OrderStatusDTO;
 
+@Service
 public class OrderDetailService {
 
+	private static String ProdID = null;
 	public static List<OrderDetail> listAvail = OrderDetailsData.OrderDetailList();
 
-	public static Object getOrderStat(OrderStatusDTO request) {
-		String statName = request.getStatName();
+	public static String getOrderStat(String request) {
 
-		Map<String, Double> prodDetails = new TreeMap();
+		JSONObject jsonObject = new JSONObject(request);
+		String statName = jsonObject.getString("statName");
 
-		for (Iterator iterator = listAvail.iterator(); iterator.hasNext();) {
-			OrderDetail orderDetail = (OrderDetail) iterator.next();
-			String strProdID = orderDetail.getProductID();
-			double dbQuantity = orderDetail.getQuantity();
-			if (prodDetails.containsKey(strProdID)) {
-				double dbExisitingQty = prodDetails.get(strProdID) + dbQuantity;
-				prodDetails.put(strProdID, dbExisitingQty);
-			} else {
-				prodDetails.put(strProdID, dbQuantity);
-			}
+		Map<String, Double> productSales = listAvail.stream()
+				.collect(Collectors.groupingBy(OrderDetail -> OrderDetail.getProductID(),
+						Collectors.summingDouble(OrderDetail -> OrderDetail.getQuantity())));
+
+		if ("MAX_SALE".equalsIgnoreCase(statName)) {
+
+			ProdID = productSales.entrySet().stream().max(Comparator.comparingDouble(Map.Entry::getValue))
+					.map(Map.Entry::getKey).orElse("No Item Found");
+		} else if ("MIN_SALE".equalsIgnoreCase(statName)) {
+
+			ProdID = productSales.entrySet().stream().min(Comparator.comparingDouble(Map.Entry::getValue))
+					.map(Map.Entry::getKey).orElse("No Item Found");
 		}
 
-		System.out.println("***********" + prodDetails.size());
-		return prodDetails;
+		List<OrderDetail> responseList = listAvail.stream()
+				.filter(OrderDetail -> OrderDetail.getProductID().equalsIgnoreCase(ProdID))
+				.collect(Collectors.toList());
+		JSONObject jsonResponse = new JSONObject();
+		jsonResponse.put("ProdID", ProdID);
+		jsonResponse.put("OrderList", responseList);
+
+		return jsonResponse.toString();
 	}
 }
